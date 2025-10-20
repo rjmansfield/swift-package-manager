@@ -113,6 +113,14 @@ struct BuildCommandOptions: ParsableArguments {
     /// If should link the Swift stdlib statically.
     @Flag(name: .customLong("static-swift-stdlib"), inversion: .prefixedNo, help: "Link Swift stdlib statically.")
     public var shouldLinkStaticSwiftStdlib: Bool = false
+
+    /// Enable code size profiling by emitting SIL, LLVM IR, and optimization records.
+    @Flag(name: .customLong("enable-codesize-profile"), help: "Generate SIL, LLVM IR, and optimization record files for code size profiling.")
+    var enableCodesizeProfile: Bool = false
+
+    /// Directory for code size profiling output files (SIL, IR, optimization records).
+    @Option(name: .customLong("codesize-profile-output-dir"), help: "Directory to store code size profiling output files.")
+    var codesizeProfileOutputDirectory: String?
 }
 
 /// swift-build command namespace
@@ -163,12 +171,27 @@ public struct SwiftBuildCommand: AsyncSwiftCommand {
             productsBuildParameters.testingParameters.enableCodeCoverage = true
             toolsBuildParameters.testingParameters.enableCodeCoverage = true
         }
-
+
         if self.options.printPIFManifestGraphviz {
             productsBuildParameters.printPIFManifestGraphviz = true
             toolsBuildParameters.printPIFManifestGraphviz = true
         }
-
+
+        if self.options.enableCodesizeProfile {
+            var driverParameters = productsBuildParameters.driverParameters
+            driverParameters.emitSILFiles = true
+            driverParameters.emitIRFiles = true
+            driverParameters.emitOptimizationRecord = true
+
+            if let outputDir = self.options.codesizeProfileOutputDirectory {
+                let outputPath = try AbsolutePath(validating: outputDir, relativeTo: swiftCommandState.originalWorkingDirectory)
+                driverParameters.silOutputDirectory = outputPath
+                driverParameters.irOutputDirectory = outputPath
+                driverParameters.optimizationRecordDirectory = outputPath
+            }
+            productsBuildParameters.driverParameters = driverParameters
+        }
+
         do {
             try await build(
                 swiftCommandState,

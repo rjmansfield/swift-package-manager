@@ -947,12 +947,43 @@ public final class SwiftBuildSystem: SPMBuildCore.BuildSystem {
                 + buildParameters.toolchain.extraFlags.cxxCompilerFlags.map { $0.shellEscaped() }
                 + buildParameters.flags.cxxCompilerFlags.map { $0.shellEscaped() }
         ).joined(separator: " ")
-        settings["OTHER_SWIFT_FLAGS"] = (
-            verboseFlag +
-            ["$(inherited)"]
-                + buildParameters.toolchain.extraFlags.swiftCompilerFlags.map { $0.shellEscaped() }
-                + buildParameters.flags.swiftCompilerFlags.map { $0.shellEscaped() }
-        ).joined(separator: " ")
+        // Build OTHER_SWIFT_FLAGS with user flags
+        var otherSwiftFlags = verboseFlag + ["$(inherited)"]
+            + buildParameters.toolchain.extraFlags.swiftCompilerFlags.map { $0.shellEscaped() }
+            + buildParameters.flags.swiftCompilerFlags.map { $0.shellEscaped() }
+
+        // Add optimization record flag if code size profiling is enabled
+        if buildParameters.driverParameters.emitOptimizationRecord {
+            otherSwiftFlags.append("-save-optimization-record")
+            // Code size profiling requires debug information to attribute code to source locations
+            otherSwiftFlags.append("-g")
+        }
+
+        settings["OTHER_SWIFT_FLAGS"] = otherSwiftFlags.joined(separator: " ")
+
+        // Set build settings to enable SIL and IR emission via Swift Build output file map
+        // Swift Build uses these settings to configure the output file map with supplementary outputs
+        if buildParameters.driverParameters.emitSILFiles {
+            settings["SWIFT_EMIT_SIL_FILES"] = "YES"
+            if let outputDir = buildParameters.driverParameters.silOutputDirectory {
+                settings["SWIFT_SIL_OUTPUT_DIR"] = outputDir.pathString
+            }
+        }
+
+        if buildParameters.driverParameters.emitIRFiles {
+            settings["SWIFT_EMIT_IR_FILES"] = "YES"
+            if let outputDir = buildParameters.driverParameters.irOutputDirectory {
+                settings["SWIFT_IR_OUTPUT_DIR"] = outputDir.pathString
+            }
+        }
+
+        // Set optimization record output directory for Swift Build
+        if buildParameters.driverParameters.emitOptimizationRecord {
+            settings["SWIFT_EMIT_OPT_RECORDS"] = "YES"
+            if let outputDir = buildParameters.driverParameters.optimizationRecordDirectory {
+                settings["SWIFT_OPT_RECORD_OUTPUT_DIR"] = outputDir.pathString
+            }
+        }
 
         settings["OTHER_LDFLAGS"] = (
             verboseFlag + // clang will be invoked to link so the verbose flag is valid for it

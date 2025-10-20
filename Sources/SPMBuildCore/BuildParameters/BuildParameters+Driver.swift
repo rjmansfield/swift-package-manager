@@ -10,6 +10,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+import Basics
+
 extension BuildParameters {
     /// A mode for explicit import checking
     public enum TargetDependencyImportCheckingMode : Codable {
@@ -25,13 +27,25 @@ extension BuildParameters {
             enableParseableModuleInterfaces: Bool = false,
             explicitTargetDependencyImportCheckingMode: TargetDependencyImportCheckingMode = .none,
             useIntegratedSwiftDriver: Bool = false,
-            isPackageAccessModifierSupported: Bool = false
+            isPackageAccessModifierSupported: Bool = false,
+            emitSILFiles: Bool = false,
+            emitIRFiles: Bool = false,
+            emitOptimizationRecord: Bool = false,
+            silOutputDirectory: AbsolutePath? = nil,
+            irOutputDirectory: AbsolutePath? = nil,
+            optimizationRecordDirectory: AbsolutePath? = nil
         ) {
             self.canRenameEntrypointFunctionName = canRenameEntrypointFunctionName
             self.enableParseableModuleInterfaces = enableParseableModuleInterfaces
             self.explicitTargetDependencyImportCheckingMode = explicitTargetDependencyImportCheckingMode
             self.useIntegratedSwiftDriver = useIntegratedSwiftDriver
             self.isPackageAccessModifierSupported = isPackageAccessModifierSupported
+            self.emitSILFiles = emitSILFiles
+            self.emitIRFiles = emitIRFiles
+            self.emitOptimizationRecord = emitOptimizationRecord
+            self.silOutputDirectory = silOutputDirectory
+            self.irOutputDirectory = irOutputDirectory
+            self.optimizationRecordDirectory = optimizationRecordDirectory
         }
 
         /// Whether to enable the entry-point-function-name feature.
@@ -53,5 +67,23 @@ extension BuildParameters {
         /// supports `-package-name` options.
         @_spi(SwiftPMInternal)
         public var isPackageAccessModifierSupported: Bool
+
+        /// Whether to emit SIL files
+        public var emitSILFiles: Bool
+
+        /// Whether to emit LLVM IR files
+        public var emitIRFiles: Bool
+
+        /// Whether to emit optimization records
+        public var emitOptimizationRecord: Bool
+
+        /// Output directory for SIL files.
+        public var silOutputDirectory: AbsolutePath?
+
+        /// Output directory for IR files.
+        public var irOutputDirectory: AbsolutePath?
+
+        /// Output directory for optimization record files.
+        public var optimizationRecordDirectory: AbsolutePath?
     }
 }
